@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,22 +18,18 @@ jobs:
     - name: 设置Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '16'
+        node-version: '18'
         
     - name: 安装依赖
       run: npm ci
-      
-    - name: 安装vsce
-      run: npm install -g @vscode/vsce
-      
-    - name: 安装rimraf
-      run: npm install --save-dev rimraf
-      
+        
     - name: 构建插件
       run: |
         npm run compile
-        npx rimraf out
-        npx webpack --mode production
+        npm run vscode:prepublish || (rm -rf out && webpack --mode production)
+      
+    - name: 安装vsce
+      run: npm install -g @vscode/vsce
       
     - name: 打包VSIX
       run: vsce package
@@ -45,10 +41,21 @@ jobs:
         PACKAGE_VERSION=$(node -p "require('./package.json').version")
         echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
         echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+        echo "vsix_path=$PACKAGE_NAME-$PACKAGE_VERSION.vsix" >> $GITHUB_OUTPUT
       
     - name: 上传VSIX构建产物
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.package-info.outputs.name }}-${{ steps.package-info.outputs.version }}
-        path: ${{ steps.package-info.outputs.name }}-${{ steps.package-info.outputs.version }}.vsix
+        path: ${{ steps.package-info.outputs.vsix_path }}
         retention-days: 30
+        
+    - name: 创建Release
+      uses: softprops/action-gh-release@v2
+      if: github.event_name == 'workflow_dispatch'
+      with:
+        files: ${{ steps.package-info.outputs.vsix_path }}
+        name: Release ${{ steps.package-info.outputs.version }}
+        tag_name: v${{ steps.package-info.outputs.version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
