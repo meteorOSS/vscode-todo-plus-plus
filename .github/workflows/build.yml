@@ -13,10 +13,10 @@ jobs:
     
     steps:
     - name: 检出代码
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: 设置Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '16'
         
@@ -47,7 +47,7 @@ jobs:
         echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
       
     - name: 上传VSIX构建产物
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.package-info.outputs.name }}-${{ steps.package-info.outputs.version }}
         path: ${{ steps.package-info.outputs.name }}-${{ steps.package-info.outputs.version }}.vsix
